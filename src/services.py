@@ -1,23 +1,62 @@
-import pandas as pd
+import json
+from typing import List, Dict, Any
+from datetime import datetime
+import logging
 
-def load_transactions_from_excel(excel_file):
+# Настройка логгера
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+def investment_bank(month: str, transactions: List[Dict[str, Any]], limit: int) -> float:
     """
-    Загружает данные транзакций из Excel-файла.
-
-    :param excel_file: Путь к Excel-файлу с транзакциями
-    :return: Список транзакций
+    Функция для вычисления суммы, которую можно было бы отложить в Инвесткопилку
+    :param month:param Месяц для расчета ('YYYY-MM')
+    :param transactions: Список транзакций (список словарей)
+    :param limit: Предел округления (целое число)
+    :return: Сумма, которую можно отложить
     """
-    df = pd.read_excel(excel_file)
-    transactions = df.to_dict('records')
-    return transactions
 
-# Пример использования функции
-excel_file = './data/operations.xlsx'  # Замените на путь к вашему Excel-файлу
-transactions = load_transactions_from_excel(excel_file)
+    # Преобразуем строку месяца в объект даты
+    try:
+        target_month = datetime.strptime(month, '%Y-%m').date()
+    except ValueError as e:
+        logger.error(f"Неверный формат строки месяца: {e}")
+        return 0.0
 
-# Проверка результата
-expected_columns = ['Дата операции', 'Сумма операции', 'Категория', 'Описание']
-for transaction in transactions:
-    assert all(column in transaction for column in expected_columns), f"Не хватает столбцов в транзакции: {transaction}"
+    total_saved = 0.0  # Переменная для накопления суммы
 
-print("Все транзакции загружены успешно!")
+    for transaction in transactions:
+        # Извлекаем дату и сумму транзакции
+        date_str = transaction['Дата операции']
+        amount = transaction['Сумма операции']
+
+        # Проверяем, относится ли транзакция к нужному месяцу
+        try:
+            trans_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError as e:
+            logger.warning(f"Ошибка парсинга даты транзакции: {e}. Пропускаем транзакцию.")
+            continue
+
+        if trans_date.month == target_month.month and trans_date.year == target_month.year:
+            # Округляем сумму до ближайшего значения лимита
+            rounded_amount = round(amount / limit) * limit
+            saved_amount = rounded_amount - amount
+            total_saved += saved_amount
+            logger.info(f"Транзакция {trans_date}: экономия {saved_amount:.2f} руб.")
+        else:
+            logger.debug(f"Пропущена транзакция за другой месяц: {trans_date}")
+
+    return total_saved
+
+
+if __name__ == "__main__":
+    # Тестовый пример
+    transactions = [
+        {"Дата операции": "2023-08-01", "Сумма операции": 1256},
+        {"Дата операции": "2023-07-15", "Сумма операции": 3412},
+        {"Дата операции": "2023-08-12", "Сумма операции": 1789}
+    ]
+
+    result = investment_bank("2023-08", transactions, 50)
+    print(json.dumps({"total_saved": result}, indent=4))

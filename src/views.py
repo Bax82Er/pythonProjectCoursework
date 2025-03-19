@@ -42,6 +42,7 @@ def get_cards_data(data):
     # Логика для получения данных по картам
     pass
 
+
 def get_top_transactions(data):
     # Логика для получения топ-5 транзакций
     pass
