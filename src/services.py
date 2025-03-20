@@ -26,6 +26,11 @@ def investment_bank(month: str, transactions: List[Dict[str, Any]], limit: int) 
 
     total_saved = 0.0  # Переменная для накопления суммы
 
+    # Проверка на нулевой лимит
+    if limit == 0:
+        logger.warning("Предел округления равен 0. Возвращаем 0.0")
+        return 0.0
+
     for transaction in transactions:
         # Извлекаем дату и сумму транзакции
         date_str = transaction['Дата операции']
