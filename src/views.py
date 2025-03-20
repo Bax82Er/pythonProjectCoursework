@@ -3,7 +3,7 @@ from datetime import datetime
 
 import requests
 
-from utils import get_currency_rates, get_data_from_excel, get_stock_prices
+from .utils import get_currency_rates, get_data_from_excel, get_stock_prices
 
 
 def home_view(request, date_time_str):
