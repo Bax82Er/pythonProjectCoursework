@@ -1,6 +1,7 @@
 import pandas as pd
 import requests
 
+
 def get_data_from_excel(date_time):
     # Логика для чтения данных из Excel-файла
     df = pd.read_excel('operations.xls')
@@ -10,12 +11,14 @@ def get_data_from_excel(date_time):
     print("Data from Excel:", df[mask].head())  # Добавляем печать первых строк для проверки
     return df[mask]
 
+
 def get_currency_rates():
     # Использование API для получения курсов валют
     response = requests.get('https://api.exchangeratesapi.io/latest?base=USD')
     data = response.json()
     print("Currency rates:", data['rates'])  # Печать курсов валют
     return data['rates']
+
 
 def get_stock_prices():
     # Использование API для получения цен на акции

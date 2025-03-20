@@ -1,60 +1,100 @@
 import pandas as pd
-from typing import Optional
 import json
+import datetime
 import logging
-from datetime import datetime
+from typing import Optional
+from functools import wraps
+from datetime import timedelta
 
 # Настройка логирования
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+DEFAULT_REPORT_FILE = "report.json"
 
 
-# Декоратор для записи результата функции в файл
-def write_to_file(filename=None):
+def report_decorator(filename: Optional[str] = None):
+    """
+    Декоратор для функций-отчетов, записывающий результат в файл.
+
+    Args:
+        filename: Необязательное имя файла для записи отчета.
+                  Если не указано, используется имя файла по умолчанию (DEFAULT_REPORT_FILE).
+    """
+
     def decorator(func):
+        @wraps(func)
         def wrapper(*args, **kwargs):
-            result = func(*args, **kwargs)
-
-            if filename is not None:
-                file_path = f"{filename}.txt"
-            else:
-                current_date = datetime.now().strftime("%Y-%m-%d")
-                file_path = f"report_{current_date}.txt"
-
-            with open(file_path, 'w') as file:
-                file.write(json.dumps(result.to_dict(), indent=4))
-
-            logger.info(f"Результат сохранен в файл {file_path}")
-            return result
+            try:
+                result = func(*args, **kwargs)
+                file_to_use = filename if filename else DEFAULT_REPORT_FILE
+                with open(file_to_use, 'w') as f:
+                    json.dump(result, f, indent=4, default=str)  # Используем default=str для сериализации datetime
+                logging.info(f"Отчет из {func.__name__} записан в файл: {file_to_use}") #Fixed func.name to func.__name__
+                return result
+            except Exception as e:
+                logging.error(f"Ошибка при выполнении функции {func.__name__}: {e}") #Fixed func.name to func.__name__
+                raise  # Re-raise exception to not hide it
 
         return wrapper
 
     return decorator
 
 
-@write_to_file()
-def spending_by_category(transactions: pd.DataFrame, category: str, date: Optional[str] = None) -> pd.DataFrame:
+@report_decorator()  # Использование декоратора без параметров
+def spending_by_category(transactions_df, category, end_date_str):
     """
-    Функция для получения трат по заданной категории за последние три месяца.
+    Вычисляет общие расходы для определенной категории за последние 90 дней.
 
-    :param transactions: DataFrame с транзакциями
-    :param category: категория расходов
-    :param date: дата отсчета трехмесячного периода (по умолчанию текущая дата)
-    :return: DataFrame с тратами по категории за последние три месяца
+    Args:
+        transactions_df: Pandas DataFrame со столбцами 'date', 'category' и 'amount'.
+        category: Категория для фильтрации транзакций.
+        end_date_str: Конечная дата для расчета (YYYY-MM-DD).
+
+    Returns:
+        Словарь, содержащий category, start_date, end_date и total_spending.
     """
-    if date is None:
-        date = datetime.now().strftime('%Y-%m-%d')
+    end_date = datetime.datetime.strptime(end_date_str, '%Y-%m-%d').date() #Fixed this to correctly parse the end date
+    start_date = end_date - timedelta(days=90)
 
-    start_date = (pd.to_datetime(date) - pd.DateOffset(months=3)).strftime('%Y-%m-%d')
+    # Преобразуйте столбец 'date' в объекты datetime для сравнения
+    transactions_df = transactions_df.copy() #Added copy to avoid side effects
+    transactions_df.loc[:, 'date'] = pd.to_datetime(transactions_df['date']).dt.date #Fixed to correctly update column, you need .loc for assignment
 
-    # Фильтруем транзакции по дате и категории
-    filtered_transactions = transactions.query(
-        f"date >= '{start_date}' & category == '{category}'"
-    )
+    # Фильтруйте по дате и категории
+    filtered_transactions = transactions_df[
+        (transactions_df['date'] >= start_date) &
+        (transactions_df['date'] <= end_date) &
+        (transactions_df['category'] == category)
+    ]
 
-    # Возвращаем агрегированные расходы по месяцам
-    grouped_transactions = filtered_transactions.groupby('month').agg({
-        'amount': ['sum']
-    }).reset_index()
+    # Вычислите общие расходы
+    total_spending = filtered_transactions['amount'].sum()
 
-    return grouped_transactions
+    report = {
+        'category': category,
+        'start_date': start_date.strftime('%Y-%m-%d'),
+        'end_date': end_date.strftime('%Y-%m-%d'),
+        'total_spending': total_spending
+    }
+
+    return report
+
+@report_decorator("food_spending.json")
+def food_spending_report(transactions_df): #Changed transactions to transactions_df
+    """
+    Generates a food spending report for a given DataFrame of transactions.
+    """
+    category = 'Food'
+    date = '2023-10-31'
+    report = spending_by_category(transactions_df, category, date)
+    return report
+
+
+if __name__ == "__main__":
+    # Example Usage (Replace with your actual data)
+    data = {'date': ['2023-07-01', '2023-07-15', '2023-08-15', '2023-09-01', '2023-10-01', '2023-10-15'],
+            'category': ['Food', 'Transportation', 'Food', 'Entertainment', 'Food', 'Transportation'],
+            'amount': [50.0, 30.0, 60.0, 40.0, 70.0, 35.0]}
+    transactions_df = pd.DataFrame(data)
+
+    food_spending_report(transactions_df)  # Creates food_spending.json

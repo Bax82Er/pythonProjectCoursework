@@ -1,7 +1,10 @@
-from datetime import datetime
 import json
+from datetime import datetime
+
 import requests
-from utils import get_data_from_excel, get_currency_rates, get_stock_prices
+
+from utils import get_currency_rates, get_data_from_excel, get_stock_prices
+
 
 def home_view(request, date_time_str):
     # Преобразуем строку с датой и временем в объект datetime
@@ -27,6 +30,7 @@ def home_view(request, date_time_str):
 
     return json.dumps(response)
 
+
 def get_greeting(date_time):
     hour = date_time.hour
     if 6 <= hour < 12:
@@ -37,6 +41,7 @@ def get_greeting(date_time):
         return "Добрый вечер"
     else:
         return "Доброй ночи"
+
 
 def get_cards_data(data):
     # Логика для получения данных по картам
