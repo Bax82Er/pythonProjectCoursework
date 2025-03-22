@@ -1,10 +1,11 @@
-import pandas as pd
-import json
 import datetime
+import json
 import logging
-from typing import Optional
-from functools import wraps
 from datetime import timedelta
+from functools import wraps
+from typing import Optional
+
+import pandas as pd
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -29,10 +30,10 @@ def report_decorator(filename: Optional[str] = None):
                 file_to_use = filename if filename else DEFAULT_REPORT_FILE
                 with open(file_to_use, 'w') as f:
                     json.dump(result, f, indent=4, default=str)  # Используем default=str для сериализации datetime
-                logging.info(f"Отчет из {func.__name__} записан в файл: {file_to_use}") #Fixed func.name to func.__name__
+                logging.info(f"Отчет из {func.__name__} записан в файл: {file_to_use}")  # Fixed func.__name__
                 return result
             except Exception as e:
-                logging.error(f"Ошибка при выполнении функции {func.__name__}: {e}") #Fixed func.name to func.__name__
+                logging.error(f"Ошибка при выполнении функции {func.__name__}: {e}")  # Fixed func.name to func.__nam_
                 raise  # Re-raise exception to not hide it
 
         return wrapper
@@ -53,12 +54,12 @@ def spending_by_category(transactions_df, category, end_date_str):
     Returns:
         Словарь, содержащий category, start_date, end_date и total_spending.
     """
-    end_date = datetime.datetime.strptime(end_date_str, '%Y-%m-%d').date() #Fixed this to correctly parse the end date
+    end_date = datetime.datetime.strptime(end_date_str, '%Y-%m-%d').date()  # Fixed this to co the end date
     start_date = end_date - timedelta(days=90)
 
     # Преобразуйте столбец 'date' в объекты datetime для сравнения
-    transactions_df = transactions_df.copy() #Added copy to avoid side effects
-    transactions_df.loc[:, 'date'] = pd.to_datetime(transactions_df['date']).dt.date #Fixed to correctly update column, you need .loc for assignment
+    transactions_df = transactions_df.copy()  # Added copy to avoid side effects
+    transactions_df.loc[:, 'date'] = pd.to_datetime(transactions_df['date']).dt.date  # Fixed
 
     # Фильтруйте по дате и категории
     filtered_transactions = transactions_df[
@@ -79,8 +80,9 @@ def spending_by_category(transactions_df, category, end_date_str):
 
     return report
 
+
 @report_decorator("food_spending.json")
-def food_spending_report(transactions_df): #Changed transactions to transactions_df
+def food_spending_report(transactions_df):  # Changed transactions to transactions_df
     """
     Generates a food spending report for a given DataFrame of transactions.
     """

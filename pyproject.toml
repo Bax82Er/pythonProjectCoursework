@@ -10,6 +10,7 @@ python = "^3.13"
 requests = "^2.32.3"
 pandas = "^2.2.3"
 chandler-reportplugin = "^0.1"
+modules = "^1.0.0"
 
 
 [tool.poetry.group.dev.dependencies]

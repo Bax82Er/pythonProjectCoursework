@@ -65,3 +65,15 @@ if __name__ == "__main__":
 
     result = investment_bank("2023-08", transactions, 50)
     print(json.dumps({"total_saved": result}, indent=4))
+
+
+def load_config():
+    return None
+
+
+def connect_db():
+    return None
+
+
+def disconnect_db():
+    return None
